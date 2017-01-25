@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from cStringIO import StringIO
-import networkx as networkx
 from Bio import Phylo
 from Bio.Nexus import Trees
 from ete2 import Tree
-import sys
 import os
 import copy
 
@@ -33,7 +31,7 @@ def menu():
     print("2 - Drzewo konsensusu")
     print("3 - Dystans RF")
     print("4 - Odcięcie")
-    print("5 - Konwersja drzewo <=> rodzina zgodnych rozbić")
+    print("5 - Konwersja drzewo => rodzina zgodnych rozbić")
     print("\n0: Wyjście\n")
     print("##############################################\n\n")
     return
@@ -83,7 +81,7 @@ def cutLeaf():
             break
 
     print("Podane drzewo: ")
-    # Phylo.draw_ascii(treeFiles[tree_num - 1].phyloTree)
+
     print treeFiles[tree_num - 1].eteTree
 
     leafs = []
@@ -137,7 +135,7 @@ def consensus():
             tree_num = int(tree_num)
         except ValueError:
             if tree_num == 'X':
-                break;
+                break
             else:
                 print("Niepoprawny numer drzewa lub znak. Spróbuj ponownie...")
                 continue
@@ -152,13 +150,13 @@ def consensus():
                 else:  # jeśli tak to dodaj
                     con_trees.append(treeFiles[tree_num - 1])
                     print("Dodano drzewo " + str(tree_num))
-                    # Phylo.draw_ascii(treeFiles[tree_num - 1].phyloTree)
+
                     print treeFiles[tree_num - 1].eteTree
 
             else:  # jeśli to pierwsze wczytywane drzewo to dodaj
                 con_trees.append(treeFiles[tree_num - 1])
                 print("Dodane drzewo: " + str(tree_num))
-                # Phylo.draw_ascii(treeFiles[tree_num - 1].phyloTree)
+
                 print treeFiles[tree_num - 1].eteTree
 
     threshold = -1.0
@@ -195,57 +193,23 @@ def distance():
                 continue
         if t1 == None:
             t1 = treeFiles[tree_num - 1].eteTree
-            # Phylo.draw_ascii(treeFiles[tree_num - 1].phyloTree)
+
             print treeFiles[tree_num - 1].eteTree
         else:
             t2 = treeFiles[tree_num - 1].eteTree
-            # Phylo.draw_ascii(treeFiles[tree_num - 1].phyloTree)
+
             print treeFiles[tree_num - 1].eteTree
 
     rf = t1.robinson_foulds(t2, unrooted_trees=True)
-    print "Dystans RF to %s spośród %s" % (rf[0], rf[1])
-    # print "Części drzewa 2 nie znalezione w drzewie 1:", list(rf[4] - rf[3])
-    # print "Części drzewa 1 nie znalezione w drzewie 2:", list(rf[3] - rf[4])
-    # print rf[5]
+
+    print "Dystans RF to "+str(rf[0])+" spośród "+str(rf[0])
+
 
 
 class MyTree:
     fileName = ""
     tree = ""
     clusters = ""
-
-    def treeToClusters(self):
-        if self.tree != "":
-            result = self.treeToClustersList()
-            result.sort(key=lambda x: len(x), reverse=1)
-            print("{")
-            for res in result:
-                print("{" + res + "}")
-            print("}")
-            self.clusters = result
-        else:
-            print("Load tree (L)")
-
-    def treeToClustersList(self, root=None):
-        if root == None:
-            root = self.tree.clade
-        clusterRepresentation = []
-        returnedClustersClass = []
-        if not root.is_terminal():
-            for currentClade in root.clades:
-                returnedClustersClass.append(self.treeToClustersList(currentClade))
-            newElement = ""
-            childrenAmount = (-1) * len(root.clades)
-            for i in range(childrenAmount, 0):
-                newElement += returnedClustersClass[i][-1]
-                if i < -1:
-                    newElement += ","
-            for ret in returnedClustersClass:
-                clusterRepresentation.extend(ret)
-            clusterRepresentation.append(newElement)
-        else:
-            clusterRepresentation = [root.name]
-        return clusterRepresentation
 
     def __contains__(self, root, clade):
         stringElements = clade
@@ -256,35 +220,13 @@ class MyTree:
                 return False
         return True
 
-    def ClusterToTree(self):
-        if self.clusters != "":
-            self.clusters.sort(key=lambda x: len(x), reverse=1)
-            rootCluster = self.clusters[0]
-            rootClade = Phylo.Newick.Clade(name=rootCluster)
-            for i in range(1, len(self.clusters)):
-                clu = self.clusters[i]
-                currentRoot = rootClade
-                j = 0
-                while j < len(currentRoot.clades):
-                    currentClade = currentRoot.clades[j]
-                    if self.__contains__(currentClade, clu):
-                        currentRoot = currentClade
-                        j = 0
-                        continue
-                    j += 1
-                currentRoot.clades.append(Phylo.Newick.Clade(name=clu))
-            t = Phylo.Newick.Tree(root=rootClade, rooted=False)
-            Phylo.draw_ascii(t)
-        else:
-            print("Brak klastrów!!!")
-
     def __init__(self):
         self.fileName = ""
         self.tree = ""
 
     def loadFile(self):
         self.fileName = raw_input("Podaj nazwe pliku z drzewem\n")
-        # self.fileName = "dist1.newick"
+
         try:
             self.tree = Phylo.read(str(self.fileName), "newick")
             print("Wczytano plik " + self.fileName)
@@ -293,45 +235,6 @@ class MyTree:
             self.fileName = ""
             print("Wczytywanie nie powiodło się!!!")
 
-    def printTre(self):
-        if self.tree != "":
-            # Phylo.draw_ascii(self.tree)
-            print self.tree.eteTree
-        else:
-            print("Nie wczytano drzewa (l)")
-
-
-def toCluster():
-    print("Konwersja drzewa do rodziny zgodnych klastrów\n")
-
-    tree_num = '-1'
-
-    while (True):
-        tree_num = raw_input("Podaj drzewo: ")
-        try:
-            tree_num = int(tree_num)
-        except ValueError:
-            print("Niepoprawny numer drzewa lub znak. Spróbuj ponownie...")
-
-            continue
-
-        if (tree_num - 1 >= len(treeFiles) or tree_num < 1):
-            print("Błąd: Nie ma takiego drzewa.")
-        else:
-            break
-
-    print("Podane drzewo: ")
-    # Phylo.draw_ascii(treeFiles[tree_num - 1].phyloTree)
-    print treeFiles[tree_num - 1].eteTree
-
-    myTree.tree = treeFiles[tree_num - 1].phyloTree
-    myTree.treeToClusters()
-
-    option = raw_input("Czy chcesz przekonwertować klastry do drzewa? [T/N]: ")
-    if option == 'T':
-        myTree.ClusterToTree()
-    else:
-        return
 
 
 def split():
@@ -354,7 +257,7 @@ def split():
             break
 
     print("Podane drzewo: ")
-    # Phylo.draw_ascii(treeFiles[tree_num - 1].phyloTree)
+
     print treeFiles[tree_num - 1].eteTree, "\n\n"
 
     splitTable = []
