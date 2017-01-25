@@ -152,7 +152,7 @@ def distance():
 
     rf = t1.robinson_foulds(t2, unrooted_trees=True)
 
-    print "Dystans RF to "+str(rf[0])+" spośród "+str(rf[0])
+    print "Dystans RF to "+str(rf[0])+" spośród "+str(rf[1])
 
 
 
