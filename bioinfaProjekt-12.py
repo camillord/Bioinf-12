@@ -28,10 +28,9 @@ def menu():
     print("Mateusz Kowalkowski\n\n")
     print("--------MENU--------")
     print("1 - Wypisz drzewa")
-    print("2 - Drzewo konsensusu")
-    print("3 - Dystans RF")
-    print("4 - Odcięcie")
-    print("5 - Konwersja drzewo => rodzina zgodnych rozbić")
+    print("2 - Dystans RF")
+    print("3 - Odcięcie")
+    print("4 - Konwersja drzewo => rodzina zgodnych rozbić")
     print("\n0: Wyjście\n")
     print("##############################################\n\n")
     return
@@ -123,55 +122,6 @@ def cutLeaf():
     Phylo.draw_ascii(cutted_tree)
 
     return
-
-
-def consensus():
-    print("Znajdywanie drzewa konsensusu dla wskazanych drzew\n")
-    tree_num = '-1'
-    con_trees = []
-    while (True):
-        tree_num = raw_input("Podaj drzewo lub X, jeśli skończyłeś wczytywanie: ")
-        try:
-            tree_num = int(tree_num)
-        except ValueError:
-            if tree_num == 'X':
-                break
-            else:
-                print("Niepoprawny numer drzewa lub znak. Spróbuj ponownie...")
-                continue
-
-        if (tree_num - 1 >= len(treeFiles) or tree_num < 1):
-            print("Błąd: Nie ma takiego drzewa.")
-        else:
-            if con_trees:  # jeśli już jakieś drzewo zostało wczytane
-                if treeFiles[tree_num - 1].phyloTree.count_terminals() != con_trees[
-                    0].phyloTree.count_terminals():  # sprawdź czy ma taką samą liczbę liści
-                    print("Podane drzewo ma inną liczbę liści niż poprzednie")
-                else:  # jeśli tak to dodaj
-                    con_trees.append(treeFiles[tree_num - 1])
-                    print("Dodano drzewo " + str(tree_num))
-
-                    print treeFiles[tree_num - 1].eteTree
-
-            else:  # jeśli to pierwsze wczytywane drzewo to dodaj
-                con_trees.append(treeFiles[tree_num - 1])
-                print("Dodane drzewo: " + str(tree_num))
-
-                print treeFiles[tree_num - 1].eteTree
-
-    threshold = -1.0
-    while (threshold <= 0.0 or threshold > 1.0):
-        threshold = float(raw_input("Podaj poziom toleracji dla drzewa konsensusu z zakresu (0, 1>: "))
-
-    trees_to_con = []
-    for t in treeFiles:
-        tr = Trees.Tree(t.data)
-        trees_to_con.append(tr)
-
-    consensus_tree = Trees.consensus(trees_to_con, threshold)
-    handle = StringIO(consensus_tree.to_string(plain_newick=True))
-    tree = Phylo.read(handle, 'newick')
-    Phylo.draw_ascii(tree)
 
 
 def distance():
@@ -317,17 +267,13 @@ while MenuCh != '0':
 
     elif MenuCh == '2':
         os.system("clear")
-        consensus()
+        distance()
 
     elif MenuCh == '3':
         os.system("clear")
-        distance()
-
-    elif MenuCh == '4':
-        os.system("clear")
         cutLeaf()
 
-    elif MenuCh == '5':
+    elif MenuCh == '4':
         os.system("clear")
         split()
 
