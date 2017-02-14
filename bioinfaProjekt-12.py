@@ -2,7 +2,7 @@
 
 from cStringIO import StringIO
 from Bio import Phylo
-from Bio.Nexus import Trees
+from Bio.Nexus import Trees, Nodes
 from ete2 import Tree
 import os
 import copy
@@ -19,6 +19,7 @@ class TreeData:
 treeFiles = []
 
 
+
 def menu():
     print("##############################################\n")
     print("Zadanie 12 - Kalkulator drzew filogenetycznych\n")
@@ -31,6 +32,7 @@ def menu():
     print("2 - Dystans RF")
     print("3 - Odcięcie")
     print("4 - Konwersja drzewo => rodzina zgodnych rozbić")
+    print("5 - Drzewo konsensusu ")
     print("\n0: Wyjście\n")
     print("##############################################\n\n")
     return
@@ -253,6 +255,120 @@ def split():
         print table
     print "\n"
 
+def calc_consensus_tree(trees, threshold):
+
+    total = len(trees)
+    if total == 0:
+        return None
+
+    dataclass = trees[0].dataclass
+
+    clades = {}
+
+    alltaxa = set(trees[0].get_taxa())
+
+    c = 0
+    for t in trees:
+        c += 1
+        t.root_with_outgroup()
+        for st_node in t._walk(t.root):
+            subclade_taxa = sorted(t.get_taxa(st_node))
+            subclade_taxa = str(subclade_taxa)
+            if subclade_taxa in clades:
+                clades[subclade_taxa] += float(t.weight) / total
+            else:
+                clades[subclade_taxa] = float(t.weight) / total
+
+    # weed out clades below threshold
+    delclades = [c for c, p in clades.items() if round(p, 3) < threshold]  # round can be necessary
+    # print delclades
+    print clades.items()
+    for c in delclades:
+        del clades[c]
+    # create a tree with a root node
+    consensus = Trees.Tree(name='consensus_tree')
+    # each clade needs a node in the new tree, add them as isolated nodes
+    for c, s in clades.items():
+        node = Nodes.Node(data=dataclass())
+        node.data.support = s
+        node.data.taxon = set(eval(c))
+        consensus.add(node)
+
+    # set root node data
+    consensus.node(consensus.root).data.support = None
+    consensus.node(consensus.root).data.taxon = alltaxa
+    # we sort the nodes by no. of taxa in the clade, so root will be the last
+    consensus_ids = consensus.all_ids()
+    consensus_ids.sort(lambda x, y: len(consensus.node(x).data.taxon) - len(consensus.node(y).data.taxon))
+    # now we just have to hook each node to the next smallest node that includes all taxa of the current
+    for i, current in enumerate(consensus_ids[:-1]):  # skip the last one which is the root
+        # search remaining nodes
+        for parent in consensus_ids[i + 1:]:
+            # print('parent: %s' % consensus.node(parent).data.taxon)
+            if consensus.node(parent).data.taxon.issuperset(consensus.node(current).data.taxon):
+                break
+        else:
+            pass
+        if len(consensus.node(current).data.taxon) == 1:
+            consensus.node(current).data.taxon = consensus.node(current).data.taxon.pop()
+        else:
+            consensus.node(current).data.taxon = None
+        consensus.link(parent, current)
+
+    consensus.node(consensus_ids[-1]).data.taxon = None
+    return consensus
+
+
+def consensus():
+    print("Znajdywanie drzewa konsensusu dla wskazanych drzew\n")
+    tree_num = '-1'
+    con_trees = []
+    while (True):
+        tree_num = raw_input("Podaj drzewo lub X, jeśli skończyłeś wczytywanie: ")
+        try:
+            tree_num = int(tree_num)
+        except ValueError:
+            if tree_num == 'X':
+                break
+            else:
+                print("Niepoprawny numer drzewa lub znak. Spróbuj ponownie...")
+                continue
+
+        if (tree_num - 1 >= len(treeFiles) or tree_num < 1):
+            print("Błąd: Nie ma takiego drzewa.")
+        else:
+            if con_trees:  # jeśli już jakieś drzewo zostało wczytane
+                if treeFiles[tree_num - 1].phyloTree.count_terminals() != con_trees[
+                    0].phyloTree.count_terminals():  # sprawdź czy ma taką samą liczbę liści
+                    print("Podane drzewo ma inną liczbę liści niż poprzednie")
+                else:  # jeśli tak to dodaj
+                    con_trees.append(treeFiles[tree_num - 1])
+                    print("Dodano drzewo " + str(tree_num))
+
+                    print treeFiles[tree_num - 1].eteTree
+
+            else:  # jeśli to pierwsze wczytywane drzewo to dodaj
+                con_trees.append(treeFiles[tree_num - 1])
+                print("Dodane drzewo: " + str(tree_num))
+
+                print treeFiles[tree_num - 1].eteTree
+
+    threshold = -1.0
+    while (threshold <= 0.0 or threshold > 1.0):
+        threshold = float(raw_input("Podaj poziom toleracji dla drzewa konsensusu z zakresu (0, 1>: "))
+
+    trees_to_con = []
+    for t in treeFiles:
+        tr = Trees.Tree(t.data)
+        trees_to_con.append(tr)
+
+    consensus_tree = calc_consensus_tree(trees_to_con, threshold)
+    handle = StringIO(consensus_tree.to_string(plain_newick=True))
+    tree = Phylo.read(handle, 'newick')
+    Phylo.draw_ascii(tree)
+
+
+
 MenuCh = 'x'
 readTree()
 os.system("clear")
@@ -276,6 +392,10 @@ while MenuCh != '0':
     elif MenuCh == '4':
         os.system("clear")
         split()
+
+    elif MenuCh == '5':
+        os.system("clear")
+        consensus()
 
     elif MenuCh == '0':
         break
