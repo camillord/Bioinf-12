@@ -282,7 +282,7 @@ def calc_consensus_tree(trees, threshold):
     # weed out clades below threshold
     delclades = [c for c, p in clades.items() if round(p, 3) < threshold]  # round can be necessary
     # print delclades
-    print clades.items()
+    # print clades.items()
     for c in delclades:
         del clades[c]
     # create a tree with a root node
